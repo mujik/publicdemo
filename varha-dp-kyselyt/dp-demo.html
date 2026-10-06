@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>DP-alustan kyselydemo</title>
+	<style>		body { background: #f4f6f7; font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 32px 16px 80px; color: #26343a; }
+		.wrap { max-width: 960px; margin: 0 auto; }
+		h1 { font-size: 22px; color: #0f6d7a; margin: 0 0 6px; }
+		h2 { font-size: 16px; color: #0f6d7a; margin: 0 0 10px; }
+		p { line-height: 1.55; }
+		form, .box { background: #fff; border: 1px solid #d5dfe2; border-radius: 10px; padding: 18px 20px; }
+		.box { margin-top: 18px; font-size: 14px; }
+		label { display: block; font-weight: bold; font-size: 14px; margin: 14px 0 6px; }
+		label:first-child { margin-top: 0; }
+		.hint { font-weight: normal; color: #5b6b71; font-size: 13px; }
+		input[type=text], textarea, select { box-sizing: border-box; padding: 8px 10px; border: 1px solid #b9c7cb; border-radius: 6px; font: 14px/1.4 Menlo, Consolas, monospace; background: #fff; color: inherit; }
+		input[type=text], textarea { width: 100%; }
+		textarea { min-height: 54px; resize: vertical; }
+		.row { display: flex; gap: 8px; flex-wrap: wrap; }
+		.row > input, .row > select { flex: 1 1 220px; min-width: 0; }
+		.inline label { display: inline-flex; align-items: center; gap: 6px; font-weight: normal; margin: 0 18px 6px 0; }
+		button { font: inherit; font-size: 14px; padding: 8px 14px; border-radius: 6px; border: 1px solid #0f6d7a; background: #fff; color: #0f6d7a; cursor: pointer; }
+		button.primary { background: #0f6d7a; color: #fff; }
+		button.small { font-size: 12px; padding: 4px 10px; }
+		button:disabled { opacity: .5; cursor: default; }
+		.envs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+		.envs button { font-size: 13px; padding: 4px 10px; border-radius: 14px; border-color: #b9c7cb; color: #26343a; }
+		.envs button.on { background: #0f6d7a; border-color: #0f6d7a; color: #fff; }
+		.envs button small { opacity: .7; }
+		.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; align-items: center; }
+		.status.err, .note.err { background: #fdecea; border-color: #f1a9a0; }
+		.status.warn, .note.warn { background: #fff4e5; border-color: #f0c27b; }
+		.note { border: 1px solid #d5dfe2; border-radius: 8px; padding: 8px 12px; margin: 10px 0 0; background: #f4f8f9; }
+		dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; }
+		dt { font-weight: bold; }
+		dd { margin: 0; font-family: Menlo, Consolas, monospace; font-size: 13px; word-break: break-all; }
+		code { background: #e8eef0; padding: 1px 4px; border-radius: 3px; word-break: break-all; }
+		.box-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+		.box-head h2 { margin: 0; }
+		.realm-line { margin: 4px 0; }
+		.queues { display: grid; gap: 8px; margin-top: 12px; }
+		.queue { border: 1px solid #d5dfe2; border-radius: 8px; padding: 8px 12px; }
+		.queue.active { border-color: #0f6d7a; box-shadow: inset 3px 0 0 #0f6d7a; }
+		.queue .qname { font-weight: bold; }
+		.queue ul { margin: 6px 0 0; padding-left: 18px; color: #5b6b71; }
+		.queue li.on { color: #26343a; }
+		.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; background: #9aa7ab; vertical-align: 0; }
+		.dot.open { background: #2e9e5b; }
+		.dot.closed { background: #d9534f; }
+		.muted { color: #5b6b71; }
+		.chat-wrap { position: relative; margin-top: 18px; }
+		.chat-inline { height: min(85vh, 900px); min-height: 600px; background: #fff; border: 1px solid #d5dfe2; border-radius: 10px; overflow: hidden; }
+		.chat-close { position: absolute; top: -14px; right: -14px; z-index: 5; width: 36px; height: 36px; padding: 0; border-radius: 50%; border: 2px solid #fff; background: #0f6d7a; color: #fff; font-size: 22px; line-height: 1; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+		.chat-close:hover, .chat-close:focus-visible { background: #0b5561; }
+		@media (max-width: 560px) { .chat-close { right: -8px; } }
+		.chat-inline > div { height: 100%; }
+		.chat-placeholder { border: 2px dashed #c5d2d6; border-radius: 10px; padding: 40px 16px; text-align: center; color: #7b8b91; }
+		.debug-filters { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-bottom: 8px; font-size: 13px; }
+		.debug-filters label { display: inline-flex; gap: 5px; align-items: center; margin: 0; font-weight: normal; }
+		.log { max-height: 460px; overflow: auto; border: 1px solid #d5dfe2; border-radius: 8px; background: #fbfcfc; font: 12px/1.45 Menlo, Consolas, monospace; }
+		.log-row { display: grid; grid-template-columns: 64px 104px minmax(0, 1fr); gap: 8px; padding: 4px 8px; border-bottom: 1px solid #edf1f2; align-items: start; }
+		.log-row .time { color: #7b8b91; text-align: right; }
+		.log-row .badge { font-size: 11px; padding: 1px 6px; border-radius: 4px; background: #e8eef0; white-space: nowrap; justify-self: start; }
+		.log-row .body { min-width: 0; word-break: break-word; }
+		.log-row .name { font-weight: bold; }
+		.log-row pre { margin: 4px 0 0; white-space: pre-wrap; word-break: break-all; max-height: 320px; overflow: auto; }
+		.log-row summary { cursor: pointer; }
+		.t-event .badge { background: #d7eef1; color: #0b5561; }
+		.t-error .badge { background: #f8d7d3; color: #8a241b; }
+		.t-iframe .badge { background: #e8e4f3; color: #4a3b7c; }
+		.t-console .badge { background: #efe9d8; color: #6b5313; }
+		.t-page .badge { background: #dfe8f7; color: #22457a; }
+		.t-error .body { color: #8a241b; }
+		.log-empty { padding: 12px; color: #7b8b91; }
+		@media (max-width: 560px) {
+			.log-row { grid-template-columns: 1fr; gap: 2px; }
+			.log-row .time { text-align: left; }
+			dl { grid-template-columns: 1fr; }
+		}
+		[hidden] { display: none !important; }
+	</style>
+</head>
+<body>
+	<div class="wrap">
+		<h1>DP-alustan kyselydemo</h1>
+		<p>Anna site-config ja environment(it). Sivu lataa chat-ikkunan niillä samaan tapaan kuin DP-alusta käynnistää chatin.</p>
+
+		<form id="form" autocomplete="off">
+			<label>Moottori</label>
+			<div class="inline">
+				<label><input type="radio" name="engine" value="embed2" checked> embed2</label>
+				<label><input type="radio" name="engine" value="embed3"> embed3</label>
+			</div>
+
+			<label for="key">a) Site-config <span class="hint">– muotoa site/&lt;realm&gt;/&lt;id&gt;.json</span></label>
+			<div class="row">
+				<input type="text" id="key" name="key" spellcheck="false" placeholder="site/b47mm32m00fjc/bfj2dhod00kls.json">
+				<button type="button" id="fetch">Hae environmentit</button>
+			</div>
+
+			<div id="urlsBox" hidden>
+				<label for="urls">configUrls <span class="hint">– valinnainen, yksi per rivi; ladataan configKeyn päälle (esim. toteutusconfig pohjan päälle)</span></label>
+				<textarea id="urls" name="urls" spellcheck="false" placeholder="https://api.ninchat.com/config/site/&lt;realm&gt;/&lt;id&gt;.json"></textarea>
+			</div>
+
+			<label for="env">b) Environment(it) <span class="hint">– pilkulla eroteltuna, järjestyksessä (myöhempi voittaa)</span></label>
+			<input type="text" id="env" name="env" spellcheck="false" placeholder="esim. suun-neuvonta">
+			<div class="envs" id="envs"></div>
+
+			<label for="realm">Realm <span class="hint">– oletuksena site-configin osoitteen realm; asetetaan chatin <code>audienceRealmId</code>:ksi</span></label>
+			<div class="row">
+				<select id="realm" name="realm">
+					<option value="@site" id="realmSiteOpt">Site-configin realm</option>
+					<option value="@config" id="realmConfigOpt">Configin oma audienceRealmId</option>
+					<optgroup label="Lapha">
+						<option value="bo148sk000578">Lapha Sosiaali – bo148sk000578</option>
+						<option value="bo14kc7900578">Lapha Testi Sosiaali – bo14kc7900578</option>
+					</optgroup>
+					<optgroup label="Varha">
+						<option value="bebh76d500vg4">Varha Sosiaali – bebh76d500vg4</option>
+						<option value="bebh4vku00vg4">Varha Terveys – bebh4vku00vg4</option>
+						<option value="b7hput1200mrg">Varha Testi Sosiaali – b7hput1200mrg</option>
+						<option value="b47mm32m00fjc">Varha Testi Terveys – b47mm32m00fjc</option>
+					</optgroup>
+					<optgroup label="Sata">
+						<option value="bi593m8u00at4">Sata Terveys – bi593m8u00at4</option>
+						<option value="b6seit990009k">Sata Testi Terveys – b6seit990009k</option>
+					</optgroup>
+					<optgroup label="OmaEP">
+						<option value="9qftlar800iuc">OmaEP (HyvaEP) – 9qftlar800iuc</option>
+					</optgroup>
+					<option value="*">Muu realm-id…</option>
+				</select>
+				<input type="text" id="realmCustom" spellcheck="false" placeholder="realm-id" hidden>
+			</div>
+
+			<label for="queue">Jono <span class="hint">– valinnainen; asetetaan <code>audienceAutoQueue</code>:ksi. DP-alusta antaa jonon usein käynnistyksessä, jos configissa ei ole sitä.</span></label>
+			<div class="row">
+				<input type="text" id="queue" name="queue" list="queueList" spellcheck="false" placeholder="jono-id tai hae nimellä valitusta realmista">
+				<button type="button" id="queueClear">Tyhjennä jono</button>
+			</div>
+			<datalist id="queueList"></datalist>
+			<div class="hint" id="queueInfo"></div>
+			<div class="envs" id="queueSuggest"></div>
+
+			<div id="cssBox">
+				<label for="css">Tyylit <span class="hint">– embed2: <code>css</code> (chat-iframe) ja <code>externalStyles</code> (sivun otsikkopalkki ym.); oletuksena configin omat</span></label>
+				<div class="row">
+					<select id="css" name="css">
+						<option value="@config" id="cssConfigOpt">Configin tyylit</option>
+						<optgroup label="Varha">
+							<option value="https://ninchat.com/customer/varha/ninchat.css">Varha – ninchat.css</option>
+							<option value="https://ninchat.com/customer/varha/ninchat-sv.css">Varha – ninchat-sv.css (ruotsi)</option>
+							<option value="https://ninchat.com/customer/varha/ninchat-en.css">Varha – ninchat-en.css (englanti)</option>
+							<option value="https://ninchat.com/customer/varha/ninchat-tyks.css">Varha – ninchat-tyks.css (TYKS)</option>
+						</optgroup>
+						<optgroup label="Sata">
+							<option value="https://ninchat.com/customer/satahva/ninchat.css">Sata – satahva/ninchat.css</option>
+						</optgroup>
+						<optgroup label="OmaEP">
+							<option value="https://ninchat.com/customer/hyvaep/ninchat.css">OmaEP (HyvaEP) – hyvaep/ninchat.css</option>
+						</optgroup>
+						<option value="*">Muu URL…</option>
+						<option value="@none">Ei chatin css:ää (Ninchatin oletusulkoasu)</option>
+					</select>
+					<input type="text" id="cssCustom" spellcheck="false" placeholder="https://…/ninchat.css" hidden>
+				</div>
+				<div class="inline" style="margin-top:6px">
+					<label><input type="checkbox" id="cssHost" checked> Myös isäntäsivulle (<code>externalStyles</code>)</label>
+				</div>
+			</div>
+
+			<label>Lisäasetukset</label>
+			<div class="inline">
+				<label>Kieli
+					<select id="lang" name="lang">
+						<option value="">oletus</option>
+						<option value="fi">fi</option>
+						<option value="sv">sv</option>
+						<option value="en">en</option>
+					</select>
+				</label>
+				<label><input type="checkbox" id="fresh" name="fresh"> Uusi istunto <span class="hint">(ei jatka vanhaa keskustelua)</span></label>
+			</div>
+
+			<label>Näyttötapa</label>
+			<div class="inline">
+				<label><input type="radio" name="mode" value="embed" checked> Upotettu sivupohjaan <span class="hint">(iso container sivulla)</span></label>
+				<label><input type="radio" name="mode" value="floating"> Kelluva <span class="hint">(ikkuna sivun kulmassa)</span></label>
+			</div>
+
+			<div class="actions">
+				<button type="submit" class="primary">Käynnistä chat</button>
+				<button type="button" id="copy">Kopioi linkki</button>
+				<button type="button" id="reset">Tyhjennä</button>
+			</div>
+		</form>
+
+		<div class="box status" id="status" hidden></div>
+
+		<div class="box" id="realmBox">
+			<div class="box-head">
+				<h2>Realm, jonot ja tyylit</h2>
+				<button type="button" class="small" id="refreshQueues">Päivitä jonojen tila</button>
+			</div>
+			<div id="realmInfo" class="muted">Hae site-config, niin sen realmit ja jonot näkyvät tässä.</div>
+		</div>
+
+		<div class="chat-wrap">
+			<div id="chatHost"><div class="chat-placeholder">Chat latautuu tähän, kun painat <b>Käynnistä chat</b>.</div></div>
+			<button type="button" class="chat-close" id="chatClose" title="Sulje chat (sama kuin kelluvan chatin otsikkopalkin X)" aria-label="Sulje chat" hidden>×</button>
+		</div>
+
+		<div class="box" id="debugBox">
+			<div class="box-head">
+				<h2>Debug <span class="hint" id="logCount"></span></h2>
+				<div class="row">
+					<button type="button" class="small" id="showConfig" disabled>Näytä yhdistetty config</button>
+					<button type="button" class="small" id="copyLog">Kopioi loki</button>
+					<button type="button" class="small" id="clearLog">Tyhjennä</button>
+				</div>
+			</div>
+			<div class="debug-filters" id="filters"></div>
+			<div class="log" id="log"><div class="log-empty">Ei vielä merkintöjä.</div></div>
+			<p class="hint">Konsolista näkyy vain tämän sivun loki; chat-iframen oma konsoli näkyy selaimen kehittäjätyökaluissa (valitse iframe). Iframen viestit ovat chatin ja sivun välistä postMessage-liikennettä.</p>
+		</div>
+	</div>
+
+	<script>
+(function () {
+			"use strict";
+
+			var $ = function (id) { return document.getElementById(id); };
+
+			var T0 = Date.now();
+			var LOG_TYPES = [
+				{ id: "event", label: "Ninchat-eventit", on: true },
+				{ id: "error", label: "Virheet", on: true },
+				{ id: "page", label: "Sivun vaiheet", on: true },
+				{ id: "console", label: "Konsoli", on: true },
+				{ id: "iframe", label: "Iframen viestit", on: false }
+			];
+			var BADGES = { event: "Ninchat-event", error: "Virhe", page: "Sivu", console: "Konsoli", iframe: "iframe" };
+			var logRows = [];
+			var filterState = {};
+			try { filterState = JSON.parse(localStorage.getItem("dpDemoFilters") || "{}") || {}; } catch (e) { filterState = {}; }
+			LOG_TYPES.forEach(function (t) { if (!(t.id in filterState)) { filterState[t.id] = t.on; } });
+
+			function safeJson(value) {
+				var seen = [];
+				try {
+					return JSON.stringify(value, function (k, v) {
+						if (v instanceof Error) { return { name: v.name, message: v.message, stack: v.stack }; }
+						if (typeof Node !== "undefined" && v instanceof Node) { return "<" + (v.nodeName || "node").toLowerCase() + ">"; }
+						if (v && typeof v === "object") {
+							if (seen.indexOf(v) >= 0) { return "[kehä]"; }
+							seen.push(v);
+						}
+						return v;
+					}, 2);
+				} catch (e) { return String(value); }
+			}
+			function esc(s) {
+				return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]; });
+			}
+			function renderRow(row) {
+				var el = document.createElement("div");
+				el.className = "log-row t-" + row.type;
+				el.hidden = !filterState[row.type];
+				var json = row.data === undefined ? "" : (typeof row.data === "string" ? row.data : safeJson(row.data));
+				var body = "<span class=\"name\">" + esc(row.name) + "</span>";
+				if (json) {
+					var compact = json.replace(/\s+/g, " ");
+					body += compact.length <= 140 ? " <span>" + esc(compact) + "</span>"
+						: "<details><summary>" + esc(compact.slice(0, 120)) + "…</summary><pre>" + esc(json) + "</pre></details>";
+				}
+				el.innerHTML = "<span class=\"time\">+" + (row.t / 1000).toFixed(2) + " s</span><span class=\"badge\">" + esc(BADGES[row.type] || row.type) + "</span><span class=\"body\">" + body + "</span>";
+				return el;
+			}
+			function updateCount() {
+				var shown = logRows.filter(function (r) { return filterState[r.type]; }).length;
+				$("logCount").textContent = "– " + shown + " / " + logRows.length + " merkintää";
+			}
+			function dlog(type, name, data) {
+				var row = { t: Date.now() - T0, time: new Date().toISOString(), type: type, name: String(name), data: data };
+				logRows.push(row);
+				var log = $("log");
+				var empty = log.querySelector(".log-empty");
+				if (empty) { empty.remove(); }
+				var atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 30;
+				log.appendChild(renderRow(row));
+				if (atBottom) { log.scrollTop = log.scrollHeight; }
+				updateCount();
+			}
+			LOG_TYPES.forEach(function (t) {
+				var l = document.createElement("label");
+				l.innerHTML = "<input type=\"checkbox\"" + (filterState[t.id] ? " checked" : "") + "> " + esc(t.label);
+				l.firstChild.addEventListener("change", function (ev) {
+					filterState[t.id] = ev.target.checked;
+					try { localStorage.setItem("dpDemoFilters", JSON.stringify(filterState)); } catch (e) {  }
+					Array.prototype.forEach.call($("log").querySelectorAll(".t-" + t.id), function (r) { r.hidden = !ev.target.checked; });
+					updateCount();
+				});
+				$("filters").appendChild(l);
+			});
+			["log", "info", "warn", "error", "debug"].forEach(function (level) {
+				var original = console[level];
+				if (typeof original !== "function") { return; }
+				console[level] = function () {
+					try {
+						var args = Array.prototype.slice.call(arguments);
+						dlog(level === "error" ? "error" : "console", "console." + level, args.length === 1 ? args[0] : args);
+					} catch (e) {  }
+					return original.apply(console, arguments);
+				};
+			});
+			window.addEventListener("error", function (e) {
+				dlog("error", "window.onerror", { message: e.message, source: e.filename, line: e.lineno, column: e.colno });
+			});
+			window.addEventListener("unhandledrejection", function (e) { dlog("error", "unhandledrejection", e.reason); });
+			window.addEventListener("message", function (e) {
+				var host = "";
+				try { host = new URL(e.origin).hostname; } catch (err) { return; }
+				if (!/(^|\.)ninchat\.com$/.test(host)) { return; }
+				var d = e.data;
+				if (typeof d === "string" && d.charAt(0) === "{") { try { d = JSON.parse(d); } catch (err) {  } }
+				var name = d && typeof d === "object" ? (d.event || d.type || d.name || d.error || d.action || "viesti") : "viesti";
+				dlog("iframe", name + " (" + host + ")", d);
+				if (d && d.event === "embed_close") { setTimeout(checkClosed, 300); }
+			});
+			$("clearLog").addEventListener("click", function () {
+				logRows = [];
+				$("log").innerHTML = "<div class=\"log-empty\">Ei merkintöjä.</div>";
+				updateCount();
+			});
+			$("copyLog").addEventListener("click", function () {
+				var text = safeJson(logRows);
+				if (navigator.clipboard) { navigator.clipboard.writeText(text).then(function () { dlog("page", "Loki kopioitu leikepöydälle", logRows.length + " merkintää"); }); }
+			});
+
+			var CONFIG_API = "https://api.ninchat.com/config/";
+			var NINCHAT_CALL = "https://api.ninchat.com/v2/call?data=";
+			var SCRIPTS = {
+				embed2: "https://ninchat.com/js/embed2.min.js",
+				embed3: "https://ninchat.com/stage/new/embed3.js"
+			};
+			var DEFAULT_KEY = "site/b47mm32m00fjc/bfj2dhod00kls.json";
+			var EMBED3_CONTAINER = "ninchat-dp-demo";
+			var KEY_RE = /^site\/[a-z0-9]+\/[a-z0-9]+\.json$/;
+			var ID_RE = /^[a-z0-9]{10,14}$/;
+
+			var NOT_ENVS = { description: 1, notes: 1, notes2: 1, containerId: 1 };
+
+			var REALM_NAMES = {};
+			Array.prototype.forEach.call($("realm").querySelectorAll("option"), function (o) {
+				if (ID_RE.test(o.value)) { REALM_NAMES[o.value] = o.textContent.split(" – ")[0]; }
+			});
+			REALM_NAMES.akqtnq8s00jvc = "DP-pohjan oletusrealm";
+
+			var QUEUE_ROLES = {
+				audienceAutoQueue: "automaattinen jono (audienceAutoQueue)",
+				audienceQueues: "jonolista (audienceQueues)",
+				queueId: "kyselyn jono-ohjaus (queueId)",
+				queue_id: "jononappi (queue_id)",
+				queues: "aukiolotarkistus (queues)",
+				queue: "jono (queue)"
+			};
+
+			var form = $("form");
+			var params = new URLSearchParams(location.search);
+
+			function list(value) {
+				return (value || "").split(/[\s,]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+			}
+			function engine() { return form.engine.value; }
+			function selectedEnvs() { return list($("env").value); }
+			function siteRealm(src) {
+				var m = /site\/([a-z0-9]+)\//.exec(src || "");
+				return m ? m[1] : null;
+			}
+
+			function siteConfigRealm(key, urls) {
+				var srcs = [key].concat(urls || []);
+				for (var i = srcs.length - 1; i >= 0; i--) {
+					var r = siteRealm(srcs[i]);
+					if (r) { return { id: r, src: i === 0 ? "configKey" : "configUrls " + i }; }
+				}
+				return null;
+			}
+			function formSiteRealm() {
+				return siteConfigRealm($("key").value.trim(), engine() === "embed3" ? list($("urls").value) : []);
+			}
+
+			function selectedRealm() {
+				var v = $("realm").value;
+				if (v === "@site") { var sr = formSiteRealm(); return sr ? sr.id : null; }
+				if (v === "@config") { return null; }
+				return (v === "*" ? $("realmCustom").value.trim() : v) || null;
+			}
+
+			var currentQueues = null;
+			function resolveQueue() {
+				var t = $("queue").value.trim();
+				if (!t) { return { id: null }; }
+				var first = t.split(/[\s–—-]+/)[0];
+				if (currentQueues) {
+					if (currentQueues[first]) { return { id: first }; }
+					var n = norm(t);
+					var byName = Object.keys(currentQueues).filter(function (id) {
+						return norm((currentQueues[id].queue_attrs || {}).name || "") === n;
+					});
+					if (byName.length === 1) { return { id: byName[0] }; }
+					if (byName.length > 1) { return { id: null, error: "useita samannimisiä jonoja – valitse listasta id:n mukaan" }; }
+				}
+				if (ID_RE.test(first) && /[0-9]/.test(first)) {
+					return { id: first, unverified: !currentQueues };
+				}
+				return { id: null, error: currentQueues ? "jonoa ei löydy valitusta realmista" : "ei jono-id (valitse listasta)" };
+			}
+			function selectedQueue() { return resolveQueue().id; }
+			function renderQueueInfo() {
+				var r = resolveQueue();
+				var el = $("queueInfo");
+				if (!$("queue").value.trim()) { el.innerHTML = ""; return; }
+				if (r.error) { el.innerHTML = "<span class=\"note err\" style=\"display:inline-block;margin:6px 0 0;padding:2px 8px\">" + esc(r.error) + "</span>"; return; }
+				var q = currentQueues && currentQueues[r.id];
+				var a = (q && q.queue_attrs) || {};
+				el.innerHTML = "→ " + (q ? "<span class=\"dot " + (a.closed ? "closed" : "open") + "\"></span><b>" + esc(a.name || "(nimetön)") + "</b> " : "") +
+					"<code>" + esc(r.id) + "</code>" + (q ? (a.closed ? " · kiinni" : " · auki") : " · ei tarkistettu");
+			}
+
+			function selectedCss() {
+				var v = $("css").value;
+				if (v === "@config") { return null; }
+				if (v === "@none") { return ""; }
+				return (v === "*" ? $("cssCustom").value.trim() : v) || null;
+			}
+			function realmReason() {
+				var v = $("realm").value;
+				if (v === "@site") { var sr = formSiteRealm(); return "site-configin osoitteesta (" + (sr ? sr.src : "–") + ")"; }
+				return "valittu tällä sivulla";
+			}
+			function stripHtml(s) {
+				return String(s).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+			}
+			function status(html, kind) {
+				var el = $("status");
+				el.className = "box status" + (kind ? " " + kind : "");
+				el.innerHTML = html;
+				el.hidden = false;
+			}
+			function getJson(url) {
+				return fetch(url).then(function (r) {
+					if (!r.ok) { throw new Error("HTTP " + r.status); }
+					return r.json();
+				});
+			}
+
+			function toQuery() {
+				var q = new URLSearchParams();
+				q.set("engine", engine());
+				q.set("key", $("key").value.trim());
+				var envs = selectedEnvs();
+				if (envs.length) { q.set("env", envs.join(",")); }
+				var urls = list($("urls").value);
+				if (engine() === "embed3" && urls.length) { q.set("urls", urls.join(",")); }
+				var rv = $("realm").value;
+				if (rv === "@config") { q.set("realm", "config"); }
+				else if (rv !== "@site" && selectedRealm()) { q.set("realm", selectedRealm()); }
+				if (selectedQueue()) { q.set("queue", selectedQueue()); }
+				if (engine() === "embed2" && selectedCss() !== null) {
+					q.set("css", selectedCss() || "none");
+					if (selectedCss() && !$("cssHost").checked) { q.set("cssHost", "0"); }
+				}
+				if (form.mode.value === "floating") { q.set("mode", "floating"); }
+				if ($("lang").value) { q.set("lang", $("lang").value); }
+				if ($("fresh").checked) { q.set("fresh", String(Date.now())); }
+				return q;
+			}
+			function syncEngineUi() {
+				var e3 = engine() === "embed3";
+				$("urlsBox").hidden = !e3;
+				$("cssBox").hidden = e3;
+			}
+			function fromQuery() {
+				form.engine.value = params.get("engine") === "embed3" ? "embed3" : "embed2";
+				$("key").value = params.get("key") || DEFAULT_KEY;
+				$("env").value = list(params.get("env")).join(", ");
+				$("urls").value = list(params.get("urls")).join("\n");
+				$("lang").value = params.get("lang") || "";
+				$("fresh").checked = !!params.get("fresh");
+				form.mode.value = params.get("mode") === "floating" ? "floating" : "embed";
+				$("queue").value = params.get("queue") || "";
+				var css = params.get("css");
+				if (!css) { $("css").value = "@config"; }
+				else if (css === "none") { $("css").value = "@none"; }
+				else if (Array.prototype.some.call($("css").options, function (o) { return o.value === css; })) { $("css").value = css; }
+				else { $("css").value = "*"; $("cssCustom").value = css; }
+				$("cssCustom").hidden = $("css").value !== "*";
+				$("cssHost").checked = params.get("cssHost") !== "0";
+				var realm = params.get("realm") || "";
+				if (!realm) { $("realm").value = "@site"; }
+				else if (realm === "config") { $("realm").value = "@config"; }
+				else if ($("realm").querySelector("option[value=\"" + realm.replace(/[^a-z0-9]/g, "") + "\"]")) { $("realm").value = realm; }
+				else { $("realm").value = "*"; $("realmCustom").value = realm; }
+				$("realmCustom").hidden = $("realm").value !== "*";
+				syncEngineUi();
+			}
+
+			var loadedConfigs = [];
+			var fetchedConfig = null;
+			var knownEnvs = {};
+
+			function collectEnvs(cfg, source) {
+				Object.keys(cfg || {}).forEach(function (name) {
+					var block = cfg[name];
+					if (NOT_ENVS[name] || !block || typeof block !== "object" || Array.isArray(block)) { return; }
+					var prev = knownEnvs[name];
+					knownEnvs[name] = {
+						questionnaire: !!block.preAudienceQuestionnaire || !!(prev && prev.questionnaire),
+						source: prev ? prev.source : source
+					};
+				});
+			}
+			function renderEnvChips() {
+				var box = $("envs");
+				box.textContent = "";
+				var chosen = selectedEnvs();
+				Object.keys(knownEnvs).forEach(function (name) {
+					var info = knownEnvs[name];
+					var b = document.createElement("button");
+					b.type = "button";
+					var pos = chosen.indexOf(name);
+					b.className = pos >= 0 ? "on" : "";
+					b.title = (info.questionnaire ? "Sisältää alkukyselyn. " : "") + (info.source === "urls" ? "Määritelty configUrls-configissa." : "");
+					b.innerHTML = esc(name) + (pos >= 0 ? " <small>" + (pos + 1) + "</small>" : "") +
+						(info.questionnaire ? " <small>✎</small>" : "") + (info.source === "urls" ? " <small>+</small>" : "");
+					if (name === "default") { b.disabled = true; b.title = "default on aina mukana"; }
+					b.addEventListener("click", function () {
+						var envs = selectedEnvs();
+						var i = envs.indexOf(name);
+						if (i >= 0) { envs.splice(i, 1); } else { envs.push(name); }
+						$("env").value = envs.join(", ");
+						renderEnvChips();
+						analyze();
+					});
+					box.appendChild(b);
+				});
+			}
+			function fetchEnvs(quiet) {
+				var key = $("key").value.trim();
+				fetchedConfig = null;
+				knownEnvs = {};
+				loadedConfigs = [];
+				if (!KEY_RE.test(key)) {
+					renderEnvChips();
+					analyze();
+					if (!quiet) { status("Site-config ei ole muotoa <code>site/&lt;realm&gt;/&lt;id&gt;.json</code> (pieniä kirjaimia ja numeroita).", "err"); }
+					return Promise.resolve();
+				}
+				var urls = engine() === "embed3" ? list($("urls").value) : [];
+				var errors = [];
+				var keyDone = getJson(CONFIG_API + key).then(function (cfg) {
+					fetchedConfig = cfg;
+					dlog("page", "configKey haettu", { key: key, environmentit: Object.keys(cfg).filter(function (n) { return !NOT_ENVS[n]; }) });
+					return cfg;
+				}, function (err) {
+					errors.push("Configia <code>" + esc(key) + "</code> ei saatu haettua (" + esc(err.message) + "). Tarkista, että se on julkaistu.");
+					dlog("error", "configKey-haku epäonnistui", { key: key, virhe: err.message });
+					return null;
+				});
+
+				var urlConfigs = urls.map(function (u) {
+					return getJson(u).then(function (cfg) {
+						dlog("page", "configUrls haettu", u);
+						return cfg;
+					}, function (err) {
+						errors.push("configUrls-osoitetta <code>" + esc(u) + "</code> ei saatu luettua (" + esc(err.message) + ") – sen environmentit ja jonot eivät näy.");
+						dlog("error", "configUrls-haku epäonnistui", { url: u, virhe: err.message });
+						return null;
+					});
+				});
+				return Promise.all([keyDone].concat(urlConfigs)).then(function (results) {
+					if (results[0]) { loadedConfigs.push({ label: "configKey", src: key, cfg: results[0] }); }
+					results.slice(1).forEach(function (cfg, i) {
+						if (cfg) { loadedConfigs.push({ label: "configUrls " + (i + 1), src: urls[i], cfg: cfg }); }
+					});
+					collectEnvs(results[0], "key");
+					results.slice(1).forEach(function (cfg) { collectEnvs(cfg, "urls"); });
+					renderEnvChips();
+					analyze();
+					if (errors.length) { status(errors.join("<br>"), "err"); }
+					else if (!quiet) { $("status").hidden = true; }
+					return errors.length === 0;
+				});
+			}
+
+			function ids(v) {
+				return (Array.isArray(v) ? v : [v]).filter(function (x) { return typeof x === "string" && ID_RE.test(x); });
+			}
+
+			function walkQuestionnaire(node, ctx, push, index) {
+				if (Array.isArray(node)) { node.forEach(function (x, i) { walkQuestionnaire(x, ctx, push, i); }); return; }
+				if (!node || typeof node !== "object") { return; }
+				var path = ctx;
+				var id = node.id || node.name;
+				if (id) { path = (ctx ? ctx + " › " : "") + id; }
+				else if (!ctx && node.type) { path = "#" + index + " " + node.type; }
+				var text = node.label || node.text;
+				var here = path + (typeof text === "string" && text ? " \"" + stripHtml(text).slice(0, 50) + "\"" : "");
+				Object.keys(node).forEach(function (k) {
+					if (k === "translations") { return; }
+					if (QUEUE_ROLES[k]) { ids(node[k]).forEach(function (qid) { push(qid, QUEUE_ROLES[k], here); }); }
+					else if (node[k] && typeof node[k] === "object") { walkQuestionnaire(node[k], path, push); }
+				});
+			}
+
+			function scanConfigs() {
+				var realms = [], queues = [];
+				loadedConfigs.forEach(function (c) {
+					Object.keys(c.cfg).forEach(function (env) {
+						var b = c.cfg[env];
+						if (NOT_ENVS[env] || !b || typeof b !== "object" || Array.isArray(b)) { return; }
+						var where = { cfg: c.label, env: env };
+						if (b.audienceRealmId && ID_RE.test(b.audienceRealmId)) { realms.push({ id: b.audienceRealmId, cfg: c.label, env: env }); }
+						["audienceAutoQueue", "audienceQueues"].forEach(function (k) {
+							ids(b[k]).forEach(function (id) { queues.push({ id: id, cfg: where.cfg, env: env, field: k, role: QUEUE_ROLES[k], ctx: "" }); });
+						});
+						[["preAudienceQuestionnaire", "alkukysely"], ["postAudienceQuestionnaire", "loppukysely"]].forEach(function (q) {
+							if (!b[q[0]]) { return; }
+							walkQuestionnaire(b[q[0]], "", function (id, role, ctx) {
+								queues.push({ id: id, cfg: where.cfg, env: env, field: q[0], role: role, ctx: q[1] + (ctx ? " › " + ctx : "") });
+							});
+						});
+					});
+				});
+				return { realms: realms, queues: queues };
+			}
+
+			function effective(envs) {
+				var order = ["default"].concat(envs.filter(function (n) { return n !== "default" && knownEnvs[n]; }));
+
+				var eff = { order: order, realm: null, realmFrom: null, autoQueue: null, autoFrom: null, questionnaire: false, from: {} };
+				order.forEach(function (env) {
+					loadedConfigs.forEach(function (c) {
+						var b = c.cfg[env];
+						if (!b || typeof b !== "object") { return; }
+						["audienceQueues", "audienceAutoQueue", "preAudienceQuestionnaire", "postAudienceQuestionnaire"].forEach(function (f) {
+							if (f in b) { eff.from[f] = { cfg: c.label, env: env }; }
+						});
+						if ("audienceRealmId" in b) { eff.realm = b.audienceRealmId; eff.realmFrom = c.label + " › " + env; }
+						if ("audienceAutoQueue" in b) { eff.autoQueue = b.audienceAutoQueue; eff.autoFrom = c.label + " › " + env; }
+						if ("audienceQueues" in b) { eff.audienceQueues = b.audienceQueues; }
+						if ("css" in b) { eff.css = b.css; eff.cssFrom = c.label + " › " + env; }
+
+						if (Array.isArray(b.externalStyles)) {
+							eff.externalStyles = eff.externalStyles || [];
+							b.externalStyles.forEach(function (u) {
+								if (eff.externalStyles.indexOf(u) < 0) { eff.externalStyles.push(u); (eff.extFrom = eff.extFrom || []).push(c.label + " › " + env); }
+							});
+						}
+						if ("preAudienceQuestionnaire" in b) { eff.questionnaire = !!(b.preAudienceQuestionnaire && b.preAudienceQuestionnaire.length); }
+					});
+				});
+				return eff;
+			}
+			var realmCache = {};
+			function describeRealm(id) {
+				if (!realmCache[id]) {
+					realmCache[id] = getJson(NINCHAT_CALL + encodeURIComponent(JSON.stringify({ action: "describe_realm_queues", realm_id: id })))
+						.then(function (r) {
+							if (r.event !== "realm_queues_found") { throw new Error(r.error_type || r.event || "tuntematon vastaus"); }
+							dlog("page", "describe_realm_queues " + id, Object.keys(r.realm_queues || {}).length + " jonoa");
+							return r.realm_queues || {};
+						});
+					realmCache[id].catch(function (err) { dlog("error", "describe_realm_queues " + id + " epäonnistui", err.message); });
+				}
+				return realmCache[id];
+			}
+			function realmLabel(id) {
+				return "<code>" + esc(id) + "</code>" + (REALM_NAMES[id] ? " " + esc(REALM_NAMES[id]) : "");
+			}
+
+			var filledRealm = null;
+			var queueMissing = false;
+			function norm(s) {
+				return String(s).toLowerCase().replace(/[åä]/g, "a").replace(/ö/g, "o").replace(/[^a-z0-9]/g, "");
+			}
+			function fillQueueChoices(main, envs) {
+				var sug = $("queueSuggest");
+				sug.textContent = "";
+				if (!main || main.error) { $("queueList").textContent = ""; filledRealm = null; currentQueues = null; renderQueueInfo(); return; }
+				currentQueues = main.queues;
+				renderQueueInfo();
+				var ids = Object.keys(main.queues);
+				var nameOf = function (id) { return (main.queues[id].queue_attrs || {}).name || ""; };
+				if (filledRealm !== main.id) {
+					filledRealm = main.id;
+					var dl = $("queueList");
+					dl.textContent = "";
+					ids.slice().sort(function (a, b) { return nameOf(a).localeCompare(nameOf(b), "fi"); }).forEach(function (id) {
+						var o = document.createElement("option");
+						o.value = id;
+						o.label = nameOf(id);
+						dl.appendChild(o);
+					});
+				}
+				var tokens = [];
+				envs.forEach(function (env) {
+					env.split(/[-_]/).forEach(function (t) {
+						t = norm(t);
+						if (t.length >= 4 && ["post", "anonymous", "anonyymi"].indexOf(t) < 0 && tokens.indexOf(t) < 0) { tokens.push(t); }
+					});
+				});
+				var hits = ids.filter(function (id) {
+					var n = norm(nameOf(id));
+					return !/\([a-z]\)$/i.test(nameOf(id).trim()) && tokens.some(function (t) { return n.indexOf(t) >= 0; });
+				}).slice(0, 8);
+				if (!hits.length) { return; }
+				var label = document.createElement("span");
+				label.className = "hint";
+				label.textContent = "Ehdotukset:";
+				sug.appendChild(label);
+				hits.forEach(function (id) {
+					var a = main.queues[id].queue_attrs || {};
+					var b = document.createElement("button");
+					b.type = "button";
+					b.className = selectedQueue() === id ? "on" : "";
+					b.innerHTML = "<span class=\"dot " + (a.closed ? "closed" : "open") + "\"></span>" + esc(nameOf(id)) + " <small>" + esc(id) + "</small>";
+					b.addEventListener("click", function () { $("queue").value = id; renderQueueInfo(); analyze(); });
+					sug.appendChild(b);
+				});
+			}
+
+			var analyzeToken = 0;
+			function analyze() {
+				var token = ++analyzeToken;
+				var box = $("realmInfo");
+				if (!loadedConfigs.length) {
+					box.className = "muted";
+					box.innerHTML = "Hae site-config, niin sen realmit ja jonot näkyvät tässä.";
+					return;
+				}
+				var envs = selectedEnvs();
+				var scan = scanConfigs();
+				var eff = effective(envs);
+				var override = selectedRealm();
+				var realm = override || eff.realm;
+				var sr = formSiteRealm();
+				$("realmSiteOpt").textContent = "Site-configin realm" + (sr ? " – " + sr.id + (REALM_NAMES[sr.id] ? " " + REALM_NAMES[sr.id] : "") + " (" + sr.src + ")" : "");
+				$("realmConfigOpt").textContent = "Configin oma audienceRealmId" + (eff.realm ? " – " + eff.realm + (REALM_NAMES[eff.realm] ? " " + REALM_NAMES[eff.realm] : "") : " (ei asetettu)");
+				var active = {};
+				eff.order.forEach(function (n) { active[n] = true; });
+				var pageQueue = selectedQueue();
+				var effAuto = pageQueue || eff.autoQueue;
+				var autoFrom = pageQueue ? "valittu tällä sivulla" : eff.autoFrom;
+
+				var candidates = [];
+				[realm].concat(scan.realms.map(function (r) { return r.id; }), loadedConfigs.map(function (c) { return siteRealm(c.src); }))
+					.forEach(function (id) { if (id && ID_RE.test(id) && candidates.indexOf(id) < 0) { candidates.push(id); } });
+
+				var html = "";
+				if (realm) {
+					html += "<p class=\"realm-line\"><b>Käytössä oleva realm:</b> " + realmLabel(realm) + " <span class=\"muted\">– " +
+						(override ? esc(realmReason()) + (eff.realm && eff.realm !== override ? ", ohittaa configin arvon " + esc(eff.realm) : "") : "configin oma, lähde " + esc(eff.realmFrom)) +
+						"</span> <span id=\"realmCount\"></span></p>";
+				} else {
+					html += "<p class=\"note warn\">Valituista environmenteista (" + esc(eff.order.join(", ")) + ") ei löydy <code>audienceRealmId</code>:tä. Valitse realm yllä olevasta listasta.</p>";
+				}
+				if (override && eff.realm && eff.realm !== override) {
+					html += "<p class=\"note warn\">Configin oma <code>audienceRealmId</code> on " + realmLabel(eff.realm) + " (" + esc(eff.realmFrom) + "), mutta chat käynnistetään realmilla " + realmLabel(override) +
+						". Tarkista alta, löytyvätkö jonot valitusta realmista; configin oman arvon saa valinnalla <i>Configin oma audienceRealmId</i>.</p>";
+				}
+				if (engine() === "embed2") {
+					var pageCss = selectedCss();
+					$("cssConfigOpt").textContent = "Configin tyylit" + (eff.css ? " – " + eff.css.replace(/^https:\/\/[^\/]+\//, "") : " (ei määritelty)");
+					var cssLine;
+					if (pageCss === null) {
+						cssLine = eff.css
+							? "<code>css</code> " + esc(eff.css) + " <span class=\"muted\">(" + esc(eff.cssFrom) + ")</span>"
+							: "<span class=\"note warn\" style=\"display:inline-block;margin:0;padding:1px 6px\">configissa ei ole <code>css</code>:ää</span> → chat näkyy Ninchatin oletusulkoasulla. Valitse tyylit yllä, jos DP-alusta antaa ne käynnistyksessä.";
+					} else if (pageCss === "") {
+						cssLine = "<code>css</code> poistettu (valittu sivulla) → Ninchatin oletusulkoasu";
+					} else {
+						cssLine = "<code>css</code> " + esc(pageCss) + " <span class=\"muted\">(valittu sivulla" + (eff.css ? ", ohittaa configin " + esc(eff.css) : "") + ")</span>";
+					}
+					var ext = (eff.externalStyles || []).slice();
+					if (pageCss && $("cssHost").checked && ext.indexOf(pageCss) < 0) { ext.push(pageCss + " (sivulta)"); }
+					html += "<p class=\"realm-line\"><b>Tyylit:</b> " + cssLine + "<br><code>externalStyles</code> " +
+						(ext.length ? ext.map(esc).join(", ") : "<span class=\"muted\">ei määritelty</span>") +
+						(pageCss === "" && eff.externalStyles && eff.externalStyles.length ? " <span class=\"muted\">(embed2 yhdistää taulukot, joten configin externalStyles jäävät voimaan)</span>" : "") + "</p>";
+				}
+				var otherRealms = scan.realms.filter(function (r) { return r.id !== realm; });
+				if (otherRealms.length) {
+					var byId = {};
+					otherRealms.forEach(function (r) { (byId[r.id] = byId[r.id] || []).push(r.cfg + " › " + r.env); });
+					html += "<p class=\"realm-line muted\">Muut configissa mainitut realmit: " + Object.keys(byId).map(function (id) {
+						return realmLabel(id) + " (" + esc(byId[id].join(", ")) + ")";
+					}).join("; ") + "</p>";
+				}
+				if (effAuto) {
+					html += "<p class=\"note" + (eff.questionnaire ? "" : " warn") + "\">" + (eff.questionnaire
+						? "Alkukyselyn jälkeen käyttäjä ohjataan automaattisesti jonoon <code>" + esc(effAuto) + "</code> (" + esc(autoFrom) + "), ellei kysely ohjaa muualle."
+						: "<b>Huom:</b> näillä environmenteilla ei ole alkukyselyä, ja <code>audienceAutoQueue</code> = <code>" + esc(effAuto) + "</code> (" + esc(autoFrom) + ") → käynnistys vie käyttäjän <b>suoraan jonoon</b>.") + "</p>";
+				}
+
+				var groups = {}, orderIds = [];
+				scan.queues.forEach(function (q) {
+					if (!groups[q.id]) { groups[q.id] = []; orderIds.push(q.id); }
+					groups[q.id].push(q);
+				});
+				if (pageQueue) {
+					if (!groups[pageQueue]) { groups[pageQueue] = []; orderIds.push(pageQueue); }
+					groups[pageQueue].unshift({ id: pageQueue, cfg: "sivu", env: "", field: "page", role: "valittu tällä sivulla → audienceAutoQueue", ctx: "" });
+				}
+				if (effAuto && ID_RE.test(effAuto) && !groups[effAuto]) { groups[effAuto] = []; orderIds.push(effAuto); }
+
+				var used = function (q) {
+					if (q.field === "page") { return true; }
+					if (pageQueue && q.field === "audienceAutoQueue") { return false; }
+					var f = eff.from[q.field];
+					return !!(active[q.env] && f && f.cfg === q.cfg && f.env === q.env);
+				};
+				var isActive = function (id) {
+					return id === effAuto || groups[id].some(used);
+				};
+				orderIds.sort(function (a, b) { return (isActive(b) ? 1 : 0) - (isActive(a) ? 1 : 0); });
+
+				var questionnaireQueue = scan.queues.some(function (q) { return used(q) && q.field === "preAudienceQuestionnaire" && q.role === QUEUE_ROLES.queueId; });
+				var hasQueueList = eff.audienceQueues && eff.audienceQueues.length;
+				queueMissing = !effAuto && !hasQueueList && !questionnaireQueue;
+				if (queueMissing) {
+					html += "<p class=\"note warn\"><b>Jono puuttuu:</b> valituilla environmenteilla (" + esc(eff.order.join(", ")) + ") ei ole <code>audienceAutoQueue</code>:ta eikä <code>audienceQueues</code>:ia, eikä kysely ohjaa jonoon. " +
+						"Silloin chat näyttää realmin <b>kaikki jonot</b> listana (\"Aloita chat\" -napit) eikä alkukysely käynnisty. DP-alusta antaa jonon käynnistyksessä – valitse jono yllä olevasta <b>Jono</b>-kentästä (ehdotukset environmentin nimen perusteella).</p>";
+				}
+				if (!orderIds.length) {
+					html += "<p class=\"muted\">Configeista ei löytynyt jono-id:itä (audienceQueues, audienceAutoQueue, kyselyn queueId / queue_id / queues).</p>";
+				} else {
+					html += "<p class=\"muted\" style=\"margin-bottom:0\">" + orderIds.length + " jonoa configeissa; korostettuna valittujen environmenttien jonot.</p><div class=\"queues\">" +
+						orderIds.map(function (id) {
+							var uses = groups[id].map(function (q) {
+								var overridden = active[q.env] && !used(q);
+								return "<li class=\"" + (used(q) ? "on" : "") + "\">" + esc(q.cfg + " › " + q.env + (q.ctx ? " › " + q.ctx : "")) + " – " + esc(q.role) +
+									(overridden ? " <i>(ohitettu: myöhempi config/environment korvaa)</i>" : "") + "</li>";
+							}).join("");
+							return "<div class=\"queue" + (isActive(id) ? " active" : "") + "\" data-queue=\"" + esc(id) + "\">" +
+								"<div><span class=\"qname\">…</span> <code>" + esc(id) + "</code></div>" +
+								"<div class=\"qstate muted\">haetaan tilaa…</div>" +
+								(uses ? "<ul>" + uses + "</ul>" : "") + "</div>";
+						}).join("") + "</div>";
+				}
+				box.className = "";
+				box.innerHTML = html;
+
+				Promise.all(candidates.map(function (id) {
+					return describeRealm(id).then(function (qs) { return { id: id, queues: qs }; }, function (err) { return { id: id, error: err.message }; });
+				})).then(function (results) {
+					if (token !== analyzeToken) { return; }
+					var main = results.filter(function (r) { return r.id === realm; })[0];
+					fillQueueChoices(main, envs);
+					var count = $("realmCount");
+					if (count && main) {
+						count.className = main.error ? "" : "muted";
+						count.innerHTML = main.error ? "<span class=\"note err\">realmia ei saatu kuvattua: " + esc(main.error) + "</span>" : "· " + Object.keys(main.queues).length + " jonoa";
+					}
+					orderIds.forEach(function (id) {
+						var el = box.querySelector("[data-queue=\"" + id + "\"]");
+						if (!el) { return; }
+						var hit = null;
+						results.forEach(function (r) { if (!hit && r.queues && r.queues[id]) { hit = { realm: r.id, q: r.queues[id] }; } });
+						var name = el.querySelector(".qname");
+						var st = el.querySelector(".qstate");
+						if (!hit) {
+							name.textContent = "Tuntematon jono";
+							st.className = "qstate";
+							st.innerHTML = "<span class=\"dot\"></span>ei löydy realmeista " + candidates.map(esc).join(", ");
+							return;
+						}
+						var a = hit.q.queue_attrs || {};
+						var features = ["video", "upload", "screensharing"].filter(function (f) { return a[f]; });
+						if (a.schedule) { features.push("aukioloaikataulu"); }
+						name.textContent = a.name || "(nimetön jono)";
+						st.className = "qstate";
+						st.innerHTML = "<span class=\"dot " + (a.closed ? "closed" : "open") + "\"></span>" + (a.closed ? "kiinni" : "auki") +
+							" · jonossa " + (a.length || 0) + (features.length ? " · " + esc(features.join(", ")) : "") +
+							" · realm " + realmLabel(hit.realm) +
+							(realm && hit.realm !== realm ? " <span class=\"note warn\" style=\"display:inline-block;padding:1px 6px;margin:0\">eri realm kuin käytössä oleva " + esc(realm) + "</span>" : "");
+					});
+				});
+			}
+
+			var embedInstance = null;
+			var startOpts = null;
+			var startStatus = null;
+			function metadata() {
+				var md = { Sivu: location.href, Referrer: document.referrer, Selain: navigator.userAgent };
+				var lang = params.get("lang");
+				if (lang) { md.pre_answers = { language: lang }; }
+				return md;
+			}
+
+			function ensureContainer(id, inline) {
+				var host = $("chatHost");
+				var old = document.getElementById(id);
+				if (old) { old.remove(); }
+				var el = document.createElement("div");
+				el.id = id;
+				if (inline) {
+					host.textContent = "";
+					host.className = "chat-inline";
+					host.appendChild(el);
+				} else {
+					host.className = "";
+					host.innerHTML = "<div class=\"chat-placeholder\">Chat avautuu <b>kelluvana</b> ikkunana sivun kulmaan.</div>";
+					document.body.appendChild(el);
+				}
+				return el;
+			}
+			function showFloatingPlaceholder() {
+				$("chatHost").className = "";
+				$("chatHost").innerHTML = "<div class=\"chat-placeholder\">Chat avautuu <b>kelluvana</b> ikkunana sivun kulmaan.</div>";
+			}
+			function loadScript(src, onload, id) {
+				var s = document.createElement("script");
+				if (id) { s.id = id; }
+				s.src = src;
+				s.onload = function () {
+					dlog("page", "skripti ladattu", src);
+					if (onload) { onload(); }
+				};
+				s.onerror = function () {
+					dlog("error", "skriptin lataus epäonnistui", src);
+					status("Skriptin <code>" + esc(src) + "</code> lataus epäonnistui.", "err");
+				};
+				document.head.appendChild(s);
+			}
+
+			function applyOverrides(config, envs, values) {
+				["default"].concat(envs).forEach(function (n) {
+					config[n] = Object.assign(config[n] || {}, values);
+				});
+			}
+			function overrideValues(opts, engineName) {
+				var v = {};
+				if (opts.fresh) {
+					v.sessionKey = "dp-demo-" + opts.fresh;
+					if (engineName === "embed2") { v.cookiePrefix = "dp_demo_" + opts.fresh + "_"; }
+				}
+				if (opts.realm) { v.audienceRealmId = opts.realm; }
+				if (opts.queue) { v.audienceAutoQueue = opts.queue; }
+				if (engineName === "embed2" && opts.css !== null) {
+					v.css = opts.css || null;
+					if (opts.css && opts.cssHost) { v.externalStyles = [opts.css]; }
+				}
+				if (engineName === "embed3") { v.floating = !opts.embed; }
+				return v;
+			}
+
+			var placementChecked = false;
+
+			function checkPlacement(opts, extra, containerId) {
+				if (placementChecked) { return; }
+				var el = document.getElementById(containerId);
+				if (!el || !el.children.length) { return; }
+				placementChecked = true;
+				var inHost = !!el.closest("#chatHost");
+				var info = Object.assign({ valittu: opts.embed ? "upotettu" : "kelluva", toteutui: inHost ? "upotettu" : "kelluva" }, extra ? extra() : {});
+				if (inHost && opts.embed) { $("chatClose").hidden = false; }
+				if (inHost === opts.embed) {
+					dlog("page", "chat avautui: " + info.toteutui, info);
+				} else {
+					dlog("error", "chat avautui " + info.toteutui + ", vaikka valittiin " + info.valittu, info);
+					status("Chat avautui <b>" + esc(info.toteutui) + "na</b>, vaikka valittiin " + esc(info.valittu) + ". Katso syy debug-näkymästä.", "warn");
+				}
+			}
+
+			function closeChat() {
+				if (!embedInstance) { return; }
+				dlog("page", "sulje-nappi painettu", embedInstance.engine);
+				if (embedInstance.engine === "embed3") {
+					var n = embedInstance.ninchat;
+					n.sendMessage({ event: (n.Event && n.Event.EmbedClose) || "embed_close" });
+				} else if (window.Ninchat && window.Ninchat.close) {
+					window.Ninchat.close(embedInstance.containerId);
+				}
+
+				setTimeout(function () {
+					if ($("chatClose").hidden) { return; }
+					dlog("page", "chat ei sulkeutunut 2 sekunnissa", embedInstance.engine === "embed2"
+						? "embed2 ohittaa close-komennon ennen keskustelun alkua (esim. alkukyselyn aikana); kelluvan titlebarin X toimii samoin"
+						: "iframe ei vastannut embed_close-viestiin – näkyykö chatissa vahvistuskysymys?");
+					status("Chat ei sulkeutunut – " + (embedInstance.engine === "embed2"
+						? "embed2 ohittaa sulkemisen alkukyselyn aikana (kuten myös kelluvan titlebarin X)."
+						: "jos chatissa näkyy vahvistuskysymys, vastaa siihen.") +
+						" <button type=\"button\" class=\"small\" id=\"forceRemove\">Poista chat sivulta</button>", "warn");
+					$("forceRemove").addEventListener("click", function () {
+						dlog("page", "chat poistettu sivulta", "container poistettiin käsin; Ninchat-istunto aikakatkaistaan palvelimella");
+						var id = embedInstance.engine === "embed3" ? EMBED3_CONTAINER : embedInstance.containerId;
+						var el = document.getElementById(id);
+						if (el) { el.remove(); }
+						onChatClosed(true);
+					});
+				}, 2000);
+			}
+			function checkClosed() {
+				if (!embedInstance || !startOpts || !startOpts.embed) { return; }
+				var id = embedInstance.engine === "embed3" ? EMBED3_CONTAINER : embedInstance.containerId;
+				var el = document.getElementById(id);
+				var frame = el && el.querySelector("iframe");
+				if (!el || !frame) { onChatClosed(); }
+			}
+			function onChatClosed(force) {
+				if (!force && $("chatClose").hidden && !$("chatHost").querySelector("iframe")) { return; }
+				$("chatClose").hidden = true;
+				var host = $("chatHost");
+				host.className = "";
+				host.innerHTML = "<div class=\"chat-placeholder\">Chat suljettu. " +
+					"<button type=\"button\" id=\"restartSame\">Käynnistä uudelleen</button> " +
+					"<button type=\"button\" class=\"primary\" id=\"restartFresh\">Käynnistä uudella istunnolla</button></div>";
+				$("restartSame").addEventListener("click", function () { location.reload(); });
+				$("restartFresh").addEventListener("click", function () {
+					var q = new URLSearchParams(location.search);
+					q.set("fresh", String(Date.now()));
+					location.search = q.toString();
+				});
+				dlog("page", "chat suljettu", "container poistettu / suljettu");
+				if (startStatus) { $("status").innerHTML = startStatus.html; $("status").className = startStatus.cls; $("status").hidden = false; }
+			}
+
+			function startEmbed2(key, envs, opts) {
+
+				var cfgContainer = (fetchedConfig && fetchedConfig.containerId) ||
+					(fetchedConfig && fetchedConfig["default"] && fetchedConfig["default"].containerId);
+				var containerId = cfgContainer || EMBED3_CONTAINER;
+				if (opts.embed) {
+					ensureContainer(containerId, true);
+				} else {
+					var old = document.getElementById(containerId);
+					if (old) { old.remove(); }
+					showFloatingPlaceholder();
+				}
+
+				var config = { containerId: containerId, "default": { debug: true }, responsive: { window: { dock: "bottom", initialState: "open" } } };
+				applyOverrides(config, envs, overrideValues(opts, "embed2"));
+				var init = { configKey: key, environment: envs, audienceMetadata: metadata(), config: config };
+				window.NinchatAsyncInit = function () {
+					var N = window.Ninchat;
+					Object.keys(N.EVENTS || {}).forEach(function (k) {
+						N.on(N.EVENT, N.EVENTS[k], function (data) {
+							dlog("event", N.EVENTS[k], data);
+							if (N.EVENTS[k] === "container_initialized") { setTimeout(function () { checkPlacement(opts, embed2Info, containerId); }, 500); }
+							if (N.EVENTS[k] === "close" || N.EVENTS[k] === "session_closed") { setTimeout(checkClosed, 300); }
+						});
+					});
+					Object.keys(N.ERRORS || {}).forEach(function (k) {
+						N.on(N.ERROR, N.ERRORS[k], function (data) { dlog("error", N.ERRORS[k], data); });
+					});
+					dlog("page", "Ninchat.embedInit", init);
+					N.embedInit(init);
+					embedInstance = { engine: "embed2", containerId: containerId };
+					$("showConfig").disabled = false;
+					setTimeout(function () { checkPlacement(opts, embed2Info, containerId); }, 6000);
+				};
+				function embed2Info() {
+					var c = window.Ninchat && window.Ninchat.containers && window.Ninchat.containers[containerId];
+					return { containerId: containerId, configinContainerId: cfgContainer || "(ei määritelty)", embed2Oletuscontainer: c ? !!c._isDefaultContainer : "?" };
+				}
+				loadScript(SCRIPTS.embed2, null, "ninchat-js");
+				return containerId + (opts.embed ? " (upotettu sivupohjaan)" : " (kelluva)");
+			}
+
+			function startEmbed3(key, envs, urls, opts) {
+
+				ensureContainer(EMBED3_CONTAINER, opts.embed);
+				loadScript(SCRIPTS.embed3, function () {
+					if (typeof NinchatEmbed === "undefined") {
+						dlog("error", "NinchatEmbed puuttuu", "embed3.js ei latautunut oikein");
+						status("NinchatEmbed puuttuu, embed3.js ei latautunut oikein.", "err");
+						return;
+					}
+					var config = { "default": { audienceMetadata: metadata() } };
+					applyOverrides(config, envs, overrideValues(opts, "embed3"));
+					var ninchat = new NinchatEmbed();
+					embedInstance = { engine: "embed3", ninchat: ninchat };
+					var info = function () {
+						var c = ninchat.config || {};
+						return { containerId: EMBED3_CONTAINER, yhdistetynConfiginFloating: c.floating, breakpoint: ninchat.currentBreakpoint };
+					};
+					var routed = false;
+					Object.keys(ninchat.Event || {}).forEach(function (k) {
+						var name = ninchat.Event[k];
+						ninchat.on(name, function (data) {
+							if (name === ninchat.Event.Route) { routed = true; }
+
+							if (name === ninchat.Event.Route || name === "container_initialized") {
+								setTimeout(function () { checkPlacement(opts, info, EMBED3_CONTAINER); }, 500);
+							}
+							dlog(name === ninchat.Event.Error ? "error" : "event", name, data);
+							if (name === ninchat.Event.Error) {
+								status("Ninchat-virhe: <code>" + esc(safeJson(data)) + "</code>", "err");
+							}
+						});
+					});
+					var init = { configKey: key, environment: envs, containerId: EMBED3_CONTAINER, config: config };
+					if (urls.length) { init.configUrls = urls; }
+					dlog("page", "ninchat.init", init);
+					ninchat.init(init);
+					$("showConfig").disabled = false;
+					setTimeout(function () {
+						if (!routed) {
+							dlog("error", "ei Route-eventtiä 20 sekuntiin", "iframe estetty (frame-ancestors) tai configUrls ei vastaa?");
+							status("Chat ei ole vastannut 20 sekuntiin. Jos ikkuna jää tyhjäksi, embed3-iframe ei ehkä saa latautua tältä osoitteelta (frame-ancestors) tai jokin configUrls ei vastaa.", "warn");
+						}
+					}, 20000);
+				});
+				return EMBED3_CONTAINER + (opts.embed ? " (upotettu sivupohjaan)" : " (kelluva)");
+			}
+
+			function start(listsOk) {
+				var key = params.get("key");
+				if (!key) { return; }
+				var e = params.get("engine") === "embed3" ? "embed3" : "embed2";
+				var envs = list(params.get("env"));
+				var urls = e === "embed3" ? list(params.get("urls")) : [];
+				var realmParam = params.get("realm");
+				var sr = siteConfigRealm(key, urls);
+				var opts = {
+					fresh: params.get("fresh"),
+
+					realm: !realmParam ? (sr && sr.id) : realmParam === "config" ? null : realmParam,
+					queue: params.get("queue") || null,
+					css: params.get("css") === "none" ? "" : (params.get("css") || null),
+					cssHost: params.get("cssHost") !== "0",
+					embed: params.get("mode") !== "floating"
+				};
+				startOpts = opts;
+				var realmWhy = !realmParam ? "site-configin osoitteesta (" + (sr ? sr.src : "–") + ")" : realmParam === "config" ? "configin oma" : "valittu sivulla";
+				if (!KEY_RE.test(key)) {
+					status("Site-config <code>" + esc(key) + "</code> ei ole muotoa <code>site/&lt;realm&gt;/&lt;id&gt;.json</code>.", "err");
+					return;
+				}
+				if (opts.css && !/^https:\/\//.test(opts.css)) {
+					status("Tyylien osoitteen pitää alkaa <code>https://</code> (" + esc(opts.css) + ").", "err");
+					return;
+				}
+				if (opts.queue && !ID_RE.test(opts.queue)) {
+					status("Jono-id <code>" + esc(opts.queue) + "</code> ei näytä Ninchatin id:ltä.", "err");
+					return;
+				}
+				if (opts.realm && !ID_RE.test(opts.realm)) {
+					status("Realm-id <code>" + esc(opts.realm) + "</code> ei näytä Ninchatin id:ltä.", "err");
+					return;
+				}
+				var unknown = listsOk ? envs.filter(function (n) { return !knownEnvs[n]; }) : [];
+				var fetchErrors = listsOk === false ? "<p>" + $("status").innerHTML + "</p>" : "";
+				dlog("page", "käynnistys", { moottori: e, näyttötapa: opts.embed ? "upotettu" : "kelluva", realm: opts.realm || "(configin oma)", realminLähde: realmWhy, jono: opts.queue || "(configin oma)", tyylit: opts.css === null ? "(configin omat)" : (opts.css || "ei css:ää") });
+				var container = e === "embed3" ? startEmbed3(key, envs, urls, opts) : startEmbed2(key, envs, opts);
+				var eff = effective(envs);
+				status(
+					"<h2>Käynnistystiedot</h2><dl>" +
+					"<dt>Moottori</dt><dd>" + esc(e) + "</dd>" +
+					"<dt>Site-config</dt><dd>" + esc(key) + "</dd>" +
+					(urls.length ? "<dt>configUrls</dt><dd>" + urls.map(esc).join("<br>") + "</dd>" : "") +
+					"<dt>Environmentit</dt><dd>default" + (envs.length ? " → " + envs.map(esc).join(" → ") : "") + "</dd>" +
+					"<dt>Realm</dt><dd>" + esc(opts.realm || eff.realm || "–") + " (" + esc(realmWhy) + ")</dd>" +
+					(e === "embed2" && opts.css !== null ? "<dt>Tyylit</dt><dd>" + (opts.css ? esc(opts.css) + (opts.cssHost ? " (css + externalStyles)" : " (css)") : "ei css:ää") + " – valittu sivulla</dd>" : "") +
+					(opts.queue ? "<dt>Jono</dt><dd>" + esc(opts.queue) + " (audienceAutoQueue, valittu sivulla)</dd>" : "") +
+					"<dt>Näyttötapa</dt><dd>" + (opts.embed ? "upotettu sivupohjaan" : "kelluva") + "</dd>" +
+					"<dt>Container</dt><dd>" + esc(container) + "</dd>" +
+					(opts.fresh ? "<dt>Istunto</dt><dd>uusi (dp-demo-" + esc(opts.fresh) + ")</dd>" : "") +
+					"</dl>" +
+					fetchErrors +
+					(unknown.length ? "<p><b>Huom:</b> configissa ei ole environmentia " + unknown.map(function (n) { return "<code>" + esc(n) + "</code>"; }).join(", ") + " – se ohitetaan hiljaa.</p>" : ""),
+					fetchErrors ? "err" : unknown.length ? "warn" : ""
+				);
+				startStatus = { html: $("status").innerHTML, cls: $("status").className };
+			}
+
+			Array.prototype.forEach.call(form.engine, function (r) {
+				r.addEventListener("change", function () { syncEngineUi(); fetchEnvs(true); });
+			});
+			$("fetch").addEventListener("click", function () { fetchEnvs(false); });
+			$("key").addEventListener("change", function () { fetchEnvs(true); });
+			$("urls").addEventListener("change", function () { fetchEnvs(true); });
+			$("env").addEventListener("input", function () { renderEnvChips(); analyze(); });
+			$("realm").addEventListener("change", function () {
+				$("realmCustom").hidden = $("realm").value !== "*";
+				analyze();
+			});
+			$("realmCustom").addEventListener("change", analyze);
+			$("queue").addEventListener("change", analyze);
+			$("queue").addEventListener("input", renderQueueInfo);
+			$("css").addEventListener("change", function () { $("cssCustom").hidden = $("css").value !== "*"; analyze(); });
+			$("cssCustom").addEventListener("change", analyze);
+			$("cssHost").addEventListener("change", analyze);
+			$("queueClear").addEventListener("click", function () { $("queue").value = ""; analyze(); });
+			$("chatClose").addEventListener("click", closeChat);
+			$("refreshQueues").addEventListener("click", function () { realmCache = {}; analyze(); });
+			$("showConfig").addEventListener("click", function () {
+				if (!embedInstance) { return; }
+				if (embedInstance.engine === "embed3") {
+					dlog("page", "yhdistetty config (embed3)", embedInstance.ninchat.config || "ei vielä saatavilla");
+				} else {
+					var c = window.Ninchat && window.Ninchat.containers && window.Ninchat.containers[embedInstance.containerId];
+					dlog("page", "yhdistetty config (embed2, isäntäsivu)", c ? { environments: c._environments, config: c._config } : "ei vielä saatavilla");
+				}
+			});
+			form.addEventListener("submit", function (ev) {
+				ev.preventDefault();
+				var key = $("key").value.trim();
+				if (!KEY_RE.test(key)) {
+					status("Anna site-config muodossa <code>site/&lt;realm&gt;/&lt;id&gt;.json</code>.", "err");
+					return;
+				}
+				var rq = resolveQueue();
+				if (rq.error) {
+					status("Jono-kenttä: " + esc(rq.error) + ". Valitse jono listasta tai ehdotuksista, tai tyhjennä kenttä.", "err");
+					$("queue").focus();
+					return;
+				}
+				if (queueMissing && !ev.submitter?.dataset?.force) {
+					status("<b>Jono puuttuu</b> – näillä environmenteilla chat näyttää realmin kaikki jonot listana eikä alkukysely käynnisty. " +
+						"Valitse jono <b>Jono</b>-kentästä (ehdotukset kentän alla). " +
+						"<button type=\"submit\" class=\"small\" data-force=\"1\" form=\"form\">Käynnistä silti ilman jonoa</button>", "warn");
+					$("queue").focus();
+					return;
+				}
+				location.search = toQuery().toString();
+			});
+			$("copy").addEventListener("click", function () {
+				var q = toQuery();
+				q.delete("fresh");
+				var url = location.origin + location.pathname + "?" + q.toString();
+				var done = function () { status("Linkki kopioitu:<br><code>" + esc(url) + "</code>"); };
+				if (navigator.clipboard) { navigator.clipboard.writeText(url).then(done, function () { status("<code>" + esc(url) + "</code>"); }); }
+				else { status("<code>" + esc(url) + "</code>"); }
+			});
+			$("reset").addEventListener("click", function () { location.href = location.pathname; });
+
+			dlog("page", "sivu ladattu", Object.fromEntries ? Object.fromEntries(params.entries()) : location.search);
+			fromQuery();
+
+			fetchEnvs(true).then(start);
+		})();
+</script>
+</body>
+</html>
